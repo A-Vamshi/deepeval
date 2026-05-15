@@ -2,6 +2,7 @@ import inspect
 import logging
 
 from typing import (
+    Any,
     List,
     Optional,
     Union,
@@ -40,6 +41,7 @@ from deepeval.test_run import (
 )
 from deepeval.evaluate.types import TestResult
 from deepeval.tracing.types import TraceSpanStatus
+from deepeval.constants import PYTEST_TRACE_TEST_WRAPPER_SPAN_NAME
 from deepeval.config.settings import get_settings
 from deepeval.test_run import TEMP_FILE_PATH
 from deepeval.confident.api import is_confident
@@ -326,3 +328,26 @@ def log_prompt(
                 test_run.prompts.append(new_prompt)
 
     global_test_run_manager.save_test_run(TEMP_FILE_PATH)
+
+
+def get_true_root_span_recursively(trace: Trace) -> Optional[BaseSpan]:
+    """User-facing root span, skipping all deepeval pytest wrapper spans."""
+    if not trace.root_spans:
+        return None
+    span = trace.root_spans[0]
+    while (
+        getattr(span, "name", None) == PYTEST_TRACE_TEST_WRAPPER_SPAN_NAME
+        and span.children
+    ):
+        span = span.children[0]
+    return span
+
+
+def get_effective_trace_output(trace: Trace) -> Optional[Any]:
+    """Trace output while the outer pytest wrapper may still be open."""
+    if trace.output is not None:
+        return trace.output
+    root_span = get_true_root_span_recursively(trace)
+    if root_span is not None:
+        return getattr(root_span, "output", None)
+    return None

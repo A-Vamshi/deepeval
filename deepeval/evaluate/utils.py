@@ -217,6 +217,18 @@ def create_api_trace(trace: Trace, golden: Golden) -> TraceApi:
     # configured on the trace, which is the opposite of what we want:
     # the user owns trace metadata, the golden owns test-case metadata,
     # both flow to their respective surfaces.
+    #
+    # Mirror ``trace_manager.create_trace_api``: eval-iterator captures the
+    # trace while the outer Observer wrapper may still be open, so
+    # ``trace.end_time`` (and sometimes ``start_time``) can be unset.
+    start_time = (
+        to_zod_compatible_iso(perf_counter_to_datetime(trace.start_time))
+        if trace.start_time
+        else to_zod_compatible_iso(perf_counter_to_datetime(time.perf_counter()))
+    )
+    effective_end_time = trace.end_time if trace.end_time else time.perf_counter()
+    end_time = to_zod_compatible_iso(perf_counter_to_datetime(effective_end_time))
+
     return TraceApi(
         uuid=trace.uuid,
         baseSpans=[],
@@ -224,16 +236,8 @@ def create_api_trace(trace: Trace, golden: Golden) -> TraceApi:
         llmSpans=[],
         retrieverSpans=[],
         toolSpans=[],
-        startTime=(
-            to_zod_compatible_iso(perf_counter_to_datetime(trace.start_time))
-            if trace.start_time
-            else None
-        ),
-        endTime=(
-            to_zod_compatible_iso(perf_counter_to_datetime(trace.end_time))
-            if trace.end_time
-            else None
-        ),
+        startTime=start_time,
+        endTime=end_time,
         input=trace.input or golden.input,
         output=trace.output,
         expected_output=trace.expected_output,

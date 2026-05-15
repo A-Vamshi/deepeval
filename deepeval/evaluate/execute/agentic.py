@@ -67,6 +67,8 @@ from deepeval.evaluate.execute._common import (
     _skip_metrics_for_error,
     _trace_error,
     filter_duplicate_results,
+    get_effective_trace_output,
+    get_true_root_span_recursively,
     log_prompt,
 )
 
@@ -100,6 +102,9 @@ async def _a_execute_agentic_test_case(
 
         # run evals through DFS
         trace_api = create_api_trace(trace=current_trace, golden=golden)
+        effective_trace_output = get_effective_trace_output(current_trace)
+        if trace_api.output is None and effective_trace_output is not None:
+            trace_api.output = effective_trace_output
 
         trace_level_metrics_count = (
             len(current_trace.metrics) if current_trace.metrics else 0
@@ -115,8 +120,8 @@ async def _a_execute_agentic_test_case(
         test_case = LLMTestCase(
             input=golden.input,
             actual_output=(
-                str(current_trace.output)
-                if current_trace.output is not None
+                str(effective_trace_output)
+                if effective_trace_output is not None
                 else None
             ),
             expected_output=current_trace.expected_output,
@@ -466,11 +471,14 @@ async def _a_execute_trace_test_case(
     requires_trace = any(metric.requires_trace for metric in metrics)
 
     llm_test_case = None
+    effective_trace_output = get_effective_trace_output(trace)
     if trace.input:
         llm_test_case = LLMTestCase(
             input=str(trace.input),
             actual_output=(
-                str(trace.output) if trace.output is not None else None
+                str(effective_trace_output)
+                if effective_trace_output is not None
+                else None
             ),
             expected_output=trace.expected_output,
             context=trace.context,

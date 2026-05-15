@@ -44,6 +44,7 @@ from deepeval.test_run.hyperparameters import process_hyperparameters
 from deepeval.test_run.test_run import TEMP_FILE_PATH
 from deepeval.utils import (
     convert_keys_to_snake_case,
+    get_is_running_deepeval,
     get_or_create_event_loop,
     open_browser,
 )
@@ -1485,7 +1486,8 @@ class EvaluationDataset:
             raise ValueError("Unable to evaluate dataset with no goldens.")
         goldens = self.goldens
         with capture_evaluation_run("traceable evaluate()"):
-            global_test_run_manager.reset()
+            if not get_is_running_deepeval():
+                global_test_run_manager.reset()
             start_time = time.perf_counter()
             test_results: List[TestResult] = []
 
@@ -1575,7 +1577,16 @@ class EvaluationDataset:
                 self._end_otel_test_run(ctx)
                 detach(ctx_token)
 
-            else:
+            # In CLI mode (`deepeval test run`), the CLI owns finalization and will
+            # call `wrap_up_test_run()` once after pytest finishes.
+            if get_is_running_deepeval():
+                return EvaluationResult(
+                    test_results=test_results,
+                    confident_link=None,
+                    test_run_id=None,
+                )
+
+            if not run_otel:
                 res = global_test_run_manager.wrap_up_test_run(
                     run_duration, display_table=False
                 )
