@@ -723,7 +723,7 @@ The plain `pytest` command works but is highly not recommended. `deepeval test r
 
 In pull request workflows on GitHub Actions, `deepeval test run` posts a markdown summary of your evaluation results as a PR comment after pytest finishes.
 
-Write your evals in a `test_*.py` file using `assert_test()` or `evaluate()`.
+Write your evals in a `test_*.py` file using `assert_test()`, `evaluate()`, or `evals_iterator()`.
 
 ### Example test file
 
@@ -814,7 +814,7 @@ Use [`--pass-rate`](/docs/evaluation-flags-and-configs#pass-rate-github-actions)
 
 ## Pytest Integration For CI/CD Evals
 
-Drop `deepeval test run` into a workflow to run your unit tests on every push or PR. This example uses `poetry` for installation and `OPENAI_API_KEY` as your LLM judge. Add `CONFIDENT_API_KEY` to send results to Confident AI.
+Drop `deepeval test run` into a workflow to run your unit tests on every push or PR. Traced evals that use `evals_iterator()` inside a `test_*.py` file are supported the same way as `assert_test()` and `evaluate()` for GitHub Actions PR comments. This example uses `poetry` for installation and `OPENAI_API_KEY` as your LLM judge. Add `CONFIDENT_API_KEY` to send results to Confident AI.
 
 ```yaml {32-38}
 name: LLM App `deepeval` Tests

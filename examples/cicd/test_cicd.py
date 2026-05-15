@@ -1,27 +1,31 @@
-from deepeval import evaluate
+from deepeval.dataset import EvaluationDataset, Golden
 from deepeval.evaluate.configs import AsyncConfig, DisplayConfig
-from deepeval.test_case import LLMTestCase, SingleTurnParams
-from deepeval.metrics import GEval
+from deepeval.metrics import TaskCompletionMetric
+from deepeval.tracing import observe
 
+_QUIET_DISPLAY = DisplayConfig(show_indicator=False, print_results=False)
 
-correctness_metric = GEval(
-    name="Correctness",
-    criteria="Determine if the 'actual output' is correct based on the 'expected output'.",
-    evaluation_params=[
-        SingleTurnParams.ACTUAL_OUTPUT,
-        SingleTurnParams.EXPECTED_OUTPUT,
-    ],
-    threshold=0.5,
-)
-test_case = LLMTestCase(
+golden = Golden(
     input="I have a persistent cough and fever. Should I be worried?",
-    # Replace this with the actual output from your LLM application
-    # actual_output="Don't care get lost.",
-    actual_output="A persistent cough and fever could be a viral infection or something more serious. See a doctor if symptoms worsen or don't improve in a few days.",
-    expected_output="A persistent cough and fever could indicate a range of illnesses, from a mild viral infection to more serious conditions like pneumonia or COVID-19. You should seek medical attention if your symptoms worsen, persist for more than a few days, or are accompanied by difficulty breathing, chest pain, or other concerning signs.",
 )
-result = evaluate(
-    [test_case],
-    [correctness_metric],
-    async_config=AsyncConfig(run_async=True),
-)
+dataset = EvaluationDataset(goldens=[golden])
+
+task_completion_metric = TaskCompletionMetric(async_mode=False)
+
+
+@observe()
+def health_advisor_agent(user_input: str):
+    """Replace this with your traced LLM application."""
+    return (
+        "A persistent cough and fever could be a viral infection or something more serious. "
+        "See a doctor if symptoms worsen or don't improve in a few days."
+    )
+
+
+def test_task_completion_cicd():
+    for golden in dataset.evals_iterator(
+        metrics=[task_completion_metric],
+        display_config=_QUIET_DISPLAY,
+        async_config=AsyncConfig(run_async=False),
+    ):
+        health_advisor_agent(golden.input)
