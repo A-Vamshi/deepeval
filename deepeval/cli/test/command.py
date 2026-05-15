@@ -131,23 +131,11 @@ def run(
         "-m",
         help="List of marks to run the tests with.",
     ),
-<<<<<<< cicd2
     pass_rate: Optional[float] = typer.Option(
         None, "--pass-rate", help="Minimum pass rate required (e.g., 0.8 for 80%)."
     ),
     required_metrics: Optional[str] = typer.Option(
         None, "--required-metrics", help="List of metric names that MUST pass. Can be used multiple times."
-=======
-    cicd: bool = typer.Option(
-        False,
-        "--cicd",
-        help="Run CI/CD evaluation from a YAML config.",
-    ),
-    ci: str = typer.Option(
-        "github",
-        "--ci",
-        help="CI/CD provider to use (e.g., github).",
->>>>>>> main
     ),
 ):
     """Run a test"""
