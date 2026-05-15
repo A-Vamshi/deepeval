@@ -337,3 +337,102 @@ class TestCLIModeAutoSkipsReset:
         )
         assert result.confident_link is None
         assert result.test_run_id is None
+
+
+class TestEvalsIteratorCLIMode:
+    """When running under `deepeval test run`, evals_iterator defers finalize."""
+
+    @staticmethod
+    def _patch_agentic_loop(**kwargs):
+        import importlib
+
+        execute_pkg = importlib.import_module("deepeval.evaluate.execute")
+        return patch.object(
+            execute_pkg, "execute_agentic_test_cases_from_loop", **kwargs
+        )
+
+    @staticmethod
+    def _exhaust_evals_iterator(dataset, **kwargs):
+        from deepeval.evaluate.configs import CacheConfig, ErrorConfig
+
+        defaults = dict(
+            metrics=[_AlwaysPassMetric()],
+            display_config=_QUIET_DISPLAY,
+            async_config=AsyncConfig(run_async=False),
+            cache_config=CacheConfig(write_cache=False),
+            error_config=ErrorConfig(),
+        )
+        defaults.update(kwargs)
+        for _ in dataset.evals_iterator(**defaults):
+            pass
+
+    @patch(
+        "deepeval.dataset.dataset.get_is_running_deepeval", return_value=True
+    )
+    def test_cli_mode_skips_reset(self, _mock):
+        from deepeval.dataset import EvaluationDataset, Golden
+
+        dataset = EvaluationDataset(goldens=[Golden(input="x")])
+
+        with self._patch_agentic_loop(return_value=iter([])):
+            with patch.object(
+                global_test_run_manager, "reset"
+            ) as mock_reset:
+                self._exhaust_evals_iterator(dataset)
+                mock_reset.assert_not_called()
+
+    @patch(
+        "deepeval.dataset.dataset.get_is_running_deepeval", return_value=True
+    )
+    def test_cli_mode_skips_wrap_up(self, _mock):
+        from deepeval.dataset import EvaluationDataset, Golden
+
+        dataset = EvaluationDataset(goldens=[Golden(input="x")])
+
+        with self._patch_agentic_loop(return_value=iter([])):
+            with patch.object(
+                global_test_run_manager, "wrap_up_test_run"
+            ) as mock_wrap_up:
+                self._exhaust_evals_iterator(dataset)
+                mock_wrap_up.assert_not_called()
+
+    @patch(
+        "deepeval.dataset.dataset.get_is_running_deepeval", return_value=True
+    )
+    def test_cli_mode_populates_test_run_for_pr_path(self, _mock):
+        from deepeval.dataset import EvaluationDataset, Golden
+        from deepeval.evaluate.utils import test_results_from_test_run
+        from deepeval.test_run.api import LLMApiTestCase, MetricData
+
+        api_test_case = LLMApiTestCase(
+            name="golden-0",
+            input="input-x",
+            success=True,
+            metrics_data=[
+                MetricData(
+                    name="AlwaysPass",
+                    score=1.0,
+                    threshold=0.5,
+                    success=True,
+                )
+            ],
+            order=0,
+        )
+
+        def fake_loop(*_args, **_kwargs):
+            global_test_run_manager.update_test_run(
+                api_test_case,
+                LLMTestCase(input="input-x", actual_output="output-x"),
+            )
+            return iter([])
+
+        dataset = EvaluationDataset(goldens=[Golden(input="x")])
+
+        with self._patch_agentic_loop(side_effect=fake_loop):
+            self._exhaust_evals_iterator(dataset)
+
+        test_run = global_test_run_manager.get_test_run()
+        assert len(test_run.test_cases) >= 1
+        converted = test_results_from_test_run(test_run)
+        assert len(converted) >= 1
+        assert converted[0].success is True
