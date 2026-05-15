@@ -122,7 +122,7 @@ def run(
     pass_rate: Optional[float] = typer.Option(
         None, "--pass-rate", help="Minimum pass rate required (e.g., 0.8 for 80%)."
     ),
-    required_metrics: Optional[List[str]] = typer.Option(
+    required_metrics: Optional[str] = typer.Option(
         None, "--required-metrics", help="List of metric names that MUST pass. Can be used multiple times."
     ),
 ):
@@ -201,9 +201,10 @@ def run(
             passed = False
             
         if required_metrics:
+            parsed_metrics = [m.strip() for m in required_metrics.split(",")]
             for test_result in test_results:
                 for metric_data in test_result.metrics_data:
-                    if metric_data.name in required_metrics and not metric_data.success:
+                    if metric_data.name in parsed_metrics and not metric_data.success:
                         passed = False
                         break
 

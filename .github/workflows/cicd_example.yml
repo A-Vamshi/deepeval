@@ -41,7 +41,9 @@ jobs:
       - name: Run DeepEval CICD
         if: ${{ env.OPENAI_API_KEY != '' }}
         run: |
-          poetry run deepeval test run example_yaml.yml --cicd
+          # The CLI automatically detects the GITHUB_ACTIONS=true environment variable 
+          # and intercepts the pytest results to post the PR comment.
+          poetry run deepeval test run test_cicd.py --pass-rate 0.80 --required-metrics Correctness
 
       #----------------------------------------------
       #              fallback logic
