@@ -18,6 +18,7 @@ from deepeval.test_run.cache import TEMP_CACHE_FILE_NAME
 from deepeval.cli.utils import _post_github_pr_comment
 from deepeval.test_run.test_run import TestRunResultDisplay
 from deepeval.evaluate.console_report import EvaluationConsoleReport
+from deepeval.evaluate.utils import test_results_from_test_run
 from deepeval.utils import (
     delete_file_if_exists,
     set_identifier,
@@ -188,7 +189,9 @@ def run(
 
     invoke_test_run_end_hook()
 
-    test_results = global_test_run_manager.get_test_run().test_results
+    test_results = test_results_from_test_run(
+        global_test_run_manager.get_test_run()
+    )
     is_ci = os.environ.get("GITHUB_ACTIONS") == "true"
     
     if is_ci and test_results:
