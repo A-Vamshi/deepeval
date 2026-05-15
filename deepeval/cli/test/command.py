@@ -206,7 +206,7 @@ def run(
         if required_metrics:
             parsed_metrics = [m.strip() for m in required_metrics.split(",")]
             for test_result in test_results:
-                for metric_data in test_result.metrics_data:
+                for metric_data in test_result.metrics_data or []:
                     if metric_data.name in parsed_metrics and not metric_data.success:
                         passed = False
                         break

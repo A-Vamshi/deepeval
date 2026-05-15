@@ -54,6 +54,8 @@ from deepeval.evaluate.execute._common import (
     _execute_metric,
     _skip_metrics_for_error,
     _trace_error,
+    get_effective_trace_output,
+    get_true_root_span_recursively,
     log_prompt,
 )
 
@@ -106,24 +108,13 @@ def _assert_test_from_current_trace(
     )
 
     # Skip deepeval's internal pytest wrapper and promote its first child.
-    root_for_dfs: Optional[BaseSpan] = None
-    is_promoted_root = False
-    if current_trace.root_spans:
-        root = current_trace.root_spans[0]
-        if (
-            getattr(root, "name", None) == PYTEST_TRACE_TEST_WRAPPER_SPAN_NAME
-            and root.children
-        ):
-            root_for_dfs = root.children[0]
-            is_promoted_root = True
-        else:
-            root_for_dfs = root
-
-    effective_trace_output = (
-        current_trace.output
-        if current_trace.output is not None
-        else getattr(root_for_dfs, "output", None)
+    root_for_dfs = get_true_root_span_recursively(current_trace)
+    is_promoted_root = bool(
+        current_trace.root_spans
+        and root_for_dfs is not None
+        and root_for_dfs is not current_trace.root_spans[0]
     )
+    effective_trace_output = get_effective_trace_output(current_trace)
 
     trace_api = create_api_trace(trace=current_trace, golden=golden)
     trace_api.status = (

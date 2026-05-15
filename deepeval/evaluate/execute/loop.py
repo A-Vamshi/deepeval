@@ -93,6 +93,8 @@ from deepeval.evaluate.execute._common import (
     _snapshot_tasks,
     _trace_error,
     filter_duplicate_results,
+    get_effective_trace_output,
+    get_true_root_span_recursively,
     log_prompt,
 )
 from deepeval.evaluate.execute.agentic import (
@@ -205,13 +207,16 @@ def execute_agentic_test_cases_from_loop(
 
                 # Create empty trace api for llm api test case
                 trace_api = create_api_trace(trace=current_trace, golden=golden)
+                effective_trace_output = get_effective_trace_output(current_trace)
+                if trace_api.output is None and effective_trace_output is not None:
+                    trace_api.output = effective_trace_output
 
                 # Format golden as test case to create llm api test case
                 test_case = LLMTestCase(
                     input=golden.input,
                     actual_output=(
-                        str(current_trace.output)
-                        if current_trace.output is not None
+                        str(effective_trace_output)
+                        if effective_trace_output is not None
                         else None
                     ),
                     expected_output=current_trace.expected_output,
@@ -389,8 +394,8 @@ def execute_agentic_test_cases_from_loop(
                     llm_test_case = LLMTestCase(
                         input=golden.input,
                         actual_output=(
-                            str(current_trace.output)
-                            if current_trace.output is not None
+                            str(effective_trace_output)
+                            if effective_trace_output is not None
                             else golden.actual_output
                         ),
                         expected_output=current_trace.expected_output,
@@ -401,11 +406,13 @@ def execute_agentic_test_cases_from_loop(
                     )
 
                     if requires_trace:
-                        llm_test_case._trace_dict = (
-                            trace_manager.create_nested_spans_dict(
-                                current_trace.root_spans[0]
+                        root_span = get_true_root_span_recursively(current_trace)
+                        if root_span is not None:
+                            llm_test_case._trace_dict = (
+                                trace_manager.create_nested_spans_dict(
+                                    root_span
+                                )
                             )
-                        )
 
                     if not skip_metrics_for_this_golden:
                         for metric in current_trace.metrics:

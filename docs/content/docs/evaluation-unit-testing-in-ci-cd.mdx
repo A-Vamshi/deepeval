@@ -719,7 +719,7 @@ The plain `pytest` command works but is highly not recommended. `deepeval test r
 </Step>
 </Steps>
 
-## GitHub Actions PR Comments
+## Pytest Integration For CI/CD Evals
 
 In pull request workflows on GitHub Actions, `deepeval test run` posts a markdown summary of your evaluation results as a PR comment after pytest finishes.
 
@@ -729,55 +729,50 @@ Write your evals in a `test_*.py` file using `assert_test()`, `evaluate()`, or `
 
 ```python title="tests/evals/test_cicd.py"
 from deepeval import evaluate
-from deepeval.evaluate.configs import AsyncConfig, DisplayConfig
 from deepeval.test_case import LLMTestCase, SingleTurnParams
 from deepeval.metrics import GEval
 
-_QUIET_DISPLAY = DisplayConfig(show_indicator=False, print_results=False)
-
-
 def test_correctness():
-    correctness_metric = GEval(
-        name="Correctness",
-        criteria="Determine if the 'actual output' is correct based on the 'expected output'.",
-        evaluation_params=[
-            SingleTurnParams.ACTUAL_OUTPUT,
-            SingleTurnParams.EXPECTED_OUTPUT,
-        ],
-        threshold=0.5,
-    )
-    test_case = LLMTestCase(
-        input="I have a persistent cough and fever. Should I be worried?",
-        actual_output="...",  # Replace with your LLM application's output
-        expected_output="...",
-    )
-    result = evaluate(
-        [test_case],
-        [correctness_metric],
-        display_config=_QUIET_DISPLAY,
-        async_config=AsyncConfig(run_async=True),
-    )
-    failed = [r.name for r in result.test_results if not r.success]
-    assert not failed, f"Metrics failed for: {', '.join(failed)}"
+    metrics = [
+        GEval(
+            name="Correctness",
+            criteria="Determine if the 'actual output' is correct based on the 'expected output'.",
+            evaluation_params=[
+                SingleTurnParams.ACTUAL_OUTPUT,
+                SingleTurnParams.EXPECTED_OUTPUT,
+            ],
+            threshold=0.5,
+        ),
+        ...
+    ]
+    test_cases = [
+        LLMTestCase(
+            input="I have a persistent cough and fever. Should I be worried?",
+            actual_output="...",  # Replace with your LLM application's output
+            expected_output="...",
+        ),
+        ...
+    ]
+    result = evaluate(test_cases, metrics)
 ```
 
 :::note
-`evaluate()` does not raise when metrics fail. Assert on `result.test_results` (as above) or use `assert_test()` if you want pytest to fail automatically on metric failures.
+The `evaluate()` and `evals_iterator()` methods do not raise errors when metrics fail, so a single `test_*` function can still pass in pytest even when scores are low. Pass the `--pass-rate` and `--required-metrics` flags on `deepeval test run` to fail the workflow after all tests finish if those thresholds are not met. To fail pytest immediately on a bad case, use `assert_test()`.
 :::
 
 ### GitHub Actions workflow
 
-Trigger on pull requests, grant comment permissions, and pass the required secrets. Use `--pass-rate` and `--required-metrics` to enforce thresholds in addition to posting the PR comment.
-
 ```yaml title=".github/workflows/deepeval.yml"
-name: DeepEval CI/CD
+name: LLM App `deepeval` Tests
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
 
 jobs:
-  evaluate:
+  test:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -801,16 +796,18 @@ jobs:
           pip install poetry
           poetry install
 
-      - name: Run DeepEval tests
+      - name: Run `deepeval` unit tests
         run: |
           poetry run deepeval test run tests/evals/test_cicd.py \
             --pass-rate 0.80 \
             --required-metrics Correctness
 ```
 
-When a pull request is opened, this workflow runs your evals and comments on the PR with passing and failing test cases, per-metric scores, and aggregate metrics. Set `CONFIDENT_API_KEY` to include a link to the full run on Confident AI.
+:::tip 
+On **pull request** workflows, `deepeval test run` posts a markdown summary on the PR after pytest finishes — passing and failing cases, per-metric scores, and aggregates.
 
-Use [`--pass-rate`](/docs/evaluation-flags-and-configs#pass-rate-github-actions) and [`--required-metrics`](/docs/evaluation-flags-and-configs#required-metrics-github-actions) to enforce deployment thresholds.
+The `--pass-rate` and `--required-metrics` flags (shown in the command above) fail the workflow when overall pass rate or named metrics do not meet your bar, even if individual pytest tests passed. See [`--pass-rate`](/docs/evaluation-flags-and-configs#pass-rate-github-actions) and [`--required-metrics`](/docs/evaluation-flags-and-configs#required-metrics-github-actions) for details.
+:::
 
 ## Pytest Integration For CI/CD Evals
 
