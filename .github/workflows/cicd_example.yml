@@ -43,7 +43,7 @@ jobs:
         run: |
           # The CLI automatically detects the GITHUB_ACTIONS=true environment variable 
           # and intercepts the pytest results to post the PR comment.
-          poetry run deepeval test run test_cicd.py --pass-rate 0.80 --required-metrics Correctness
+          poetry run deepeval test run examples/cicd/test_cicd.py --pass-rate 0.80 --required-metrics Correctness
 
       #----------------------------------------------
       #              fallback logic
