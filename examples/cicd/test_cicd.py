@@ -16,10 +16,7 @@ task_completion_metric = TaskCompletionMetric(async_mode=False)
 @observe()
 def health_advisor_agent(user_input: str):
     """Replace this with your traced LLM application."""
-    return (
-        "A persistent cough and fever could be a viral infection or something more serious. "
-        "See a doctor if symptoms worsen or don't improve in a few days."
-    )
+    return "Nah get lost"
 
 
 def test_task_completion_cicd():
