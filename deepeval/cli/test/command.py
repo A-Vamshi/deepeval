@@ -31,16 +31,28 @@ from deepeval.utils import (
 app = typer.Typer(name="test")
 
 
-def check_if_valid_file(test_file_or_directory: str):
+def check_if_valid_file(test_file_or_directory: str, is_cicd: bool = False):
     if "::" in test_file_or_directory:
         test_file_or_directory, test_case = test_file_or_directory.split("::")
     if os.path.isfile(test_file_or_directory):
-        if test_file_or_directory.endswith(".py"):
+        if is_cicd:
+            if not (
+                test_file_or_directory.endswith(".yml")
+                or test_file_or_directory.endswith(".yaml")
+            ):
+                raise ValueError(
+                    "CI/CD evaluation requires a YAML configuration file."
+                )
+        elif test_file_or_directory.endswith(".py"):
             if not os.path.basename(test_file_or_directory).startswith("test_"):
                 raise ValueError(
                     "Test will not run. Please ensure the file starts with `test_` prefix."
                 )
     elif os.path.isdir(test_file_or_directory):
+        if is_cicd:
+            raise ValueError(
+                "CI/CD evaluation requires a YAML configuration file, not a directory."
+            )
         return
     else:
         raise ValueError(
@@ -119,18 +131,36 @@ def run(
         "-m",
         help="List of marks to run the tests with.",
     ),
+<<<<<<< cicd2
     pass_rate: Optional[float] = typer.Option(
         None, "--pass-rate", help="Minimum pass rate required (e.g., 0.8 for 80%)."
     ),
     required_metrics: Optional[str] = typer.Option(
         None, "--required-metrics", help="List of metric names that MUST pass. Can be used multiple times."
+=======
+    cicd: bool = typer.Option(
+        False,
+        "--cicd",
+        help="Run CI/CD evaluation from a YAML config.",
+    ),
+    ci: str = typer.Option(
+        "github",
+        "--ci",
+        help="CI/CD provider to use (e.g., github).",
+>>>>>>> main
     ),
 ):
     """Run a test"""
     delete_file_if_exists(TEMP_FILE_PATH)
     delete_file_if_exists(TEMP_CACHE_FILE_NAME)
-    check_if_valid_file(test_file_or_directory)
+    check_if_valid_file(test_file_or_directory, is_cicd=cicd)
     set_is_running_deepeval(True)
+
+    if cicd:
+        from deepeval.cli.cicd.cicd import execute_cicd
+
+        execute_cicd(test_file_or_directory, ci)
+        return
 
     should_use_cache = use_cache and repeat is None
     set_should_use_cache(should_use_cache)
