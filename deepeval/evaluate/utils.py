@@ -54,9 +54,11 @@ def _is_metric_successful(metric_data: MetricData) -> bool:
 
 
 def create_metric_data(metric: BaseMetric) -> MetricData:
+    metric_class_name = type(metric).__name__
     if metric.error is not None:
         return MetricData(
             name=metric.__name__,
+            metricClassName=metric_class_name,
             threshold=metric.threshold,
             score=None,
             reason=None,
@@ -70,6 +72,7 @@ def create_metric_data(metric: BaseMetric) -> MetricData:
     else:
         return MetricData(
             name=metric.__name__,
+            metricClassName=metric_class_name,
             score=metric.score,
             threshold=metric.threshold,
             reason=metric.reason,
@@ -83,9 +86,11 @@ def create_metric_data(metric: BaseMetric) -> MetricData:
 
 
 def create_arena_metric_data(metric: ArenaGEval, contestant: str) -> MetricData:
+    metric_class_name = type(metric).__name__
     if metric.error is not None:
         return MetricData(
             name=metric.__name__,
+            metricClassName=metric_class_name,
             threshold=1,
             score=None,
             reason=None,
@@ -99,6 +104,7 @@ def create_arena_metric_data(metric: ArenaGEval, contestant: str) -> MetricData:
     else:
         return MetricData(
             name=metric.__name__,
+            metricClassName=metric_class_name,
             score=1 if contestant == metric.winner else 0,
             threshold=1,
             reason=metric.reason,
@@ -109,6 +115,15 @@ def create_arena_metric_data(metric: ArenaGEval, contestant: str) -> MetricData:
             evaluationCost=metric.evaluation_cost,
             verboseLogs=metric.verbose_logs,
         )
+
+
+def metric_matches_required(
+    metric_data: MetricData, required_metric_classes: List[str]
+) -> bool:
+    """True when ``metric_data`` was produced by one of the required metric classes."""
+    if not metric_data.metric_class_name:
+        return False
+    return metric_data.metric_class_name in required_metric_classes
 
 
 def create_test_result(

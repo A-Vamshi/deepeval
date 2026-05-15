@@ -800,7 +800,7 @@ jobs:
         run: |
           poetry run deepeval test run tests/evals/test_cicd.py \
             --pass-rate 0.80 \
-            --required-metrics Correctness
+            --required-metrics GEval
 ```
 
 :::tip 

@@ -18,7 +18,10 @@ from deepeval.test_run.cache import TEMP_CACHE_FILE_NAME
 from deepeval.cli.utils import _post_github_pr_comment
 from deepeval.test_run.test_run import TestRunResultDisplay
 from deepeval.evaluate.console_report import EvaluationConsoleReport
-from deepeval.evaluate.utils import test_results_from_test_run
+from deepeval.evaluate.utils import (
+    metric_matches_required,
+    test_results_from_test_run,
+)
 from deepeval.utils import (
     delete_file_if_exists,
     set_identifier,
@@ -124,7 +127,9 @@ def run(
         None, "--pass-rate", help="Minimum pass rate required (e.g., 0.8 for 80%)."
     ),
     required_metrics: Optional[str] = typer.Option(
-        None, "--required-metrics", help="List of metric names that MUST pass. Can be used multiple times."
+        None,
+        "--required-metrics",
+        help="Comma-separated metric class names that MUST pass (e.g. TaskCompletionMetric, GEval).",
     ),
 ):
     """Run a test"""
@@ -204,10 +209,15 @@ def run(
             passed = False
             
         if required_metrics:
-            parsed_metrics = [m.strip() for m in required_metrics.split(",")]
+            required_metric_classes = [
+                m.strip() for m in required_metrics.split(",") if m.strip()
+            ]
             for test_result in test_results:
                 for metric_data in test_result.metrics_data or []:
-                    if metric_data.name in parsed_metrics and not metric_data.success:
+                    if (
+                        metric_matches_required(metric_data, required_metric_classes)
+                        and not metric_data.success
+                    ):
                         passed = False
                         break
 
