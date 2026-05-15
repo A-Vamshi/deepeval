@@ -1,4 +1,5 @@
-from deepeval import assert_test
+from deepeval import evaluate
+from deepeval.evaluate.configs import AsyncConfig, DisplayConfig
 from deepeval.test_case import LLMTestCase, SingleTurnParams
 from deepeval.metrics import GEval
 
@@ -19,4 +20,10 @@ def test_correctness():
         actual_output="Don't care get lost.",
         expected_output="A persistent cough and fever could indicate a range of illnesses, from a mild viral infection to more serious conditions like pneumonia or COVID-19. You should seek medical attention if your symptoms worsen, persist for more than a few days, or are accompanied by difficulty breathing, chest pain, or other concerning signs.",
     )
-    assert_test(test_case, [correctness_metric])
+    result = evaluate(
+        [test_case],
+        [correctness_metric],
+        async_config=AsyncConfig(run_async=True),
+    )
+    failed = [r.name for r in result.test_results if not r.success]
+    assert not failed, f"Metrics failed for: {', '.join(failed)}"
