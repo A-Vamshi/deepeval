@@ -32,7 +32,11 @@ class MetricData(BaseModel):
     model_config = make_model_config(extra="ignore")
 
     name: str
-    metric_class_name: Optional[str] = Field(None, alias="metricClassName")
+    metric_class_name: Optional[str] = Field(
+        None,
+        alias="metricClassName",
+        exclude=True,
+    )
     threshold: float
     success: bool
     score: Optional[float] = None
