@@ -28,9 +28,7 @@ from deepeval.test_case.mcp import (
     validate_mcp_servers,
 )
 
-_MLLM_IMAGE_REGISTRY: weakref.WeakValueDictionary[str, "MLLMImage"] = (
-    weakref.WeakValueDictionary()
-)
+_MLLM_IMAGE_REGISTRY: Dict[str, "MLLMImage"] = {}
 
 
 @dataclass
@@ -76,8 +74,10 @@ class MLLMImage:
                     raise ValueError(
                         f"Invalid remote URL format: {self.url}. URL must start with http:// or https://"
                     )
-                self.filename = None
-                self.mimeType = None
+
+                parsed_url = urlparse(self.url)
+                self.filename = os.path.basename(parsed_url.path)
+                self.mimeType = mimetypes.guess_type(self.filename)[0]
                 self.dataBase64 = None
 
         _MLLM_IMAGE_REGISTRY[self._id] = self
@@ -94,6 +94,8 @@ class MLLMImage:
         return self
 
     def _placeholder(self) -> str:
+        if self.mimeType == "application/pdf":
+            return f"[DEEPEVAL:PDF:{self._id}]"
         return f"[DEEPEVAL:IMAGE:{self._id}]"
 
     def __str__(self) -> str:
@@ -136,7 +138,7 @@ class MLLMImage:
         return False
 
     def parse_multimodal_string(s: str):
-        pattern = r"\[DEEPEVAL:IMAGE:(.*?)\]"
+        pattern = r"\[DEEPEVAL:(?:IMAGE|PDF):(.*?)\]"
         matches = list(re.finditer(pattern, s))
 
         result = []
@@ -317,6 +319,7 @@ class ToolCall(BaseModel):
             f"    {line}" for line in lines[1:]
         )
 
+
 class RetrievedContextData(BaseModel):
     context: str
     source: str
@@ -431,7 +434,7 @@ class LLMTestCase(BaseModel):
         if self.multimodal is True:
             return self
 
-        pattern = r"\[DEEPEVAL:IMAGE:(.*?)\]"
+        pattern = r"\[DEEPEVAL:(?:IMAGE|PDF):(.*?)\]"
 
         auto_detect = (
             any(
@@ -446,7 +449,10 @@ class LLMTestCase(BaseModel):
         )
         if self.retrieval_context is not None:
             auto_detect = auto_detect or any(
-                re.search(pattern, c.context if isinstance(c, RetrievedContextData) else c)
+                re.search(
+                    pattern,
+                    c.context if isinstance(c, RetrievedContextData) else c,
+                )
                 for c in self.retrieval_context
                 if isinstance(c, (RetrievedContextData, str))
             )
@@ -490,7 +496,8 @@ class LLMTestCase(BaseModel):
         # Ensure `retrieval_context` is None or a list of strings
         if retrieval_context is not None:
             if not isinstance(retrieval_context, list) or not all(
-                isinstance(item, (str, RetrievedContextData)) for item in retrieval_context
+                isinstance(item, (str, RetrievedContextData))
+                for item in retrieval_context
             ):
                 raise TypeError(
                     "'retrieval_context' must be None or a list of strings or RetrievedContextData"
@@ -579,7 +586,7 @@ class LLMTestCase(BaseModel):
         return data
 
     def _get_images_mapping(self) -> Dict[str, MLLMImage]:
-        pattern = r"\[DEEPEVAL:IMAGE:(.*?)\]"
+        pattern = r"\[DEEPEVAL:(?:IMAGE|PDF):(.*?)\]"
         image_ids = set()
 
         def extract_ids_from_string(s: Optional[str]) -> None:
