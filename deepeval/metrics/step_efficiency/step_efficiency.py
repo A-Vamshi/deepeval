@@ -1,7 +1,8 @@
-from typing import Optional, List, Union
 import json
+from typing import Optional, List, Union
 
 from deepeval.utils import get_or_create_event_loop
+from deepeval.tracing.utils import make_json_serializable
 from deepeval.metrics.utils import (
     construct_verbose_logs,
     check_llm_test_case_params,
@@ -12,7 +13,6 @@ from deepeval.metrics.utils import (
 from deepeval.test_case import LLMTestCase, SingleTurnParams
 from deepeval.metrics import BaseMetric
 from deepeval.models import DeepEvalBaseLLM
-from deepeval.templates import resolve_template
 from deepeval.metrics.indicator import metric_progress_indicator
 from deepeval.metrics.step_efficiency.schema import Task, EfficiencyVerdict
 
@@ -148,14 +148,10 @@ class StepEfficiencyMetric(BaseMetric):
     def _get_score(
         self, task: str, test_case: LLMTestCase
     ) -> EfficiencyVerdict:
-        raw = test_case._trace_dict
-        trace_json_str = (
-            json.dumps(raw, indent=2)
-            if isinstance(raw, dict)
-            else (str(raw) if raw is not None else "{}")
+        trace_json_str = json.dumps(
+            test_case._trace_dict, default=make_json_serializable, indent=2
         )
-        prompt = resolve_template("metrics", 
-            self.__class__.__name__,
+        prompt = self._get_prompt(
             "get_execution_efficiency",
             task=task,
             trace_json_str=trace_json_str,
@@ -173,14 +169,10 @@ class StepEfficiencyMetric(BaseMetric):
     async def _a_get_score(
         self, task: str, test_case: LLMTestCase
     ) -> EfficiencyVerdict:
-        raw = test_case._trace_dict
-        trace_json_str = (
-            json.dumps(raw, indent=2)
-            if isinstance(raw, dict)
-            else (str(raw) if raw is not None else "{}")
+        trace_json_str = json.dumps(
+            test_case._trace_dict, default=make_json_serializable, indent=2
         )
-        prompt = resolve_template("metrics", 
-            self.__class__.__name__,
+        prompt = self._get_prompt(
             "get_execution_efficiency",
             task=task,
             trace_json_str=trace_json_str,
@@ -196,14 +188,10 @@ class StepEfficiencyMetric(BaseMetric):
         )
 
     def _extract_task_from_trace(self, test_case: LLMTestCase) -> str:
-        raw = test_case._trace_dict
-        trace_json = (
-            json.dumps(raw, indent=2)
-            if isinstance(raw, dict)
-            else (str(raw) if raw is not None else "{}")
+        trace_json = json.dumps(
+            test_case._trace_dict, default=make_json_serializable, indent=2
         )
-        prompt = resolve_template("metrics", 
-            self.__class__.__name__,
+        prompt = self._get_prompt(
             "extract_task_from_trace",
             trace_json=trace_json,
             multimodal=test_case.multimodal,
@@ -217,14 +205,10 @@ class StepEfficiencyMetric(BaseMetric):
         )
 
     async def _a_extract_task_from_trace(self, test_case: LLMTestCase) -> str:
-        raw = test_case._trace_dict
-        trace_json = (
-            json.dumps(raw, indent=2)
-            if isinstance(raw, dict)
-            else (str(raw) if raw is not None else "{}")
+        trace_json = json.dumps(
+            test_case._trace_dict, default=make_json_serializable, indent=2
         )
-        prompt = resolve_template("metrics", 
-            self.__class__.__name__,
+        prompt = self._get_prompt(
             "extract_task_from_trace",
             trace_json=trace_json,
             multimodal=test_case.multimodal,

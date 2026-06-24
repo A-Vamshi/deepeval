@@ -14,7 +14,6 @@ from deepeval.metrics.utils import (
     generate_with_schema_and_extract,
 )
 from deepeval.models import DeepEvalBaseLLM
-from deepeval.templates import resolve_template
 from deepeval.metrics.indicator import metric_progress_indicator
 from deepeval.test_case import ConversationalTestCase, Turn, MultiTurnParams
 from deepeval.utils import get_or_create_event_loop, prettify_list
@@ -170,12 +169,10 @@ class TurnRelevancyMetric(BaseConversationalMetric):
                     {"message number": f"{index+1}", "reason": verdict.reason}
                 )
 
-        prompt = resolve_template("metrics", 
-
-            self.__class__.__name__,
-
+        prompt = self._get_prompt(
             "generate_reason",
-            score=self.score, irrelevancies=irrelevancies
+            score=self.score,
+            irrelevancies=irrelevancies,
         )
 
         return await a_generate_with_schema_and_extract(
@@ -201,12 +198,10 @@ class TurnRelevancyMetric(BaseConversationalMetric):
                     {"message number": f"{index+1}", "reason": verdict.reason}
                 )
 
-        prompt = resolve_template("metrics", 
-
-            self.__class__.__name__,
-
+        prompt = self._get_prompt(
             "generate_reason",
-            score=self.score, irrelevancies=irrelevancies
+            score=self.score,
+            irrelevancies=irrelevancies,
         )
 
         return generate_with_schema_and_extract(
@@ -220,12 +215,11 @@ class TurnRelevancyMetric(BaseConversationalMetric):
     async def _a_generate_verdict(
         self, turns_sliding_window: List[Turn]
     ) -> TurnRelevancyVerdict:
-        prompt = resolve_template("metrics", 
-            self.__class__.__name__,
+        prompt = self._get_prompt(
             "generate_verdicts",
             sliding_window=[
                 convert_turn_to_dict(turn) for turn in turns_sliding_window
-            ]
+            ],
         )
 
         return await a_generate_with_schema_and_extract(
@@ -239,12 +233,11 @@ class TurnRelevancyMetric(BaseConversationalMetric):
     def _generate_verdict(
         self, turns_sliding_window: List[Turn]
     ) -> TurnRelevancyVerdict:
-        prompt = resolve_template("metrics", 
-            self.__class__.__name__,
+        prompt = self._get_prompt(
             "generate_verdicts",
             sliding_window=[
                 convert_turn_to_dict(turn) for turn in turns_sliding_window
-            ]
+            ],
         )
 
         return generate_with_schema_and_extract(
