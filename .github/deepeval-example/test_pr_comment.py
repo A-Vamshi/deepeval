@@ -19,7 +19,7 @@ class AlwaysPassMetric(BaseMetric):
         self.evaluation_cost = 0.0
 
     def measure(self, test_case: LLMTestCase, *args, **kwargs) -> float:
-        self.score = 1.0
+        self.score = 0.3
         self.success = self.score >= self.threshold
         self.reason = "Static metric for the PR-comment E2E test."
         return self.score
@@ -32,7 +32,7 @@ class AlwaysPassMetric(BaseMetric):
 
     @property
     def __name__(self):
-        return "Always Pass"
+        return "Always Fail"
 
 
 def test_pr_comment():
