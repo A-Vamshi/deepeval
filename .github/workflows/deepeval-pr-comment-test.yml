@@ -21,4 +21,4 @@ jobs:
         env:
           CONFIDENT_BASE_URL: https://swiftly-portable-sediment.ngrok-free.dev
           CONFIDENT_API_KEY: ${{ secrets.CONFIDENT_API_KEY }}
-        run: deepeval test run .github/deepeval-example/test_pr_comment.py -id "CheckComment" --test-regression
+        run: deepeval test run .github/deepeval-example/test_pr_comment.py -id "CheckComment" --mode regression
