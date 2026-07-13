@@ -1,0 +1,23 @@
+name: DeepEval PR Comment Test
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deepeval from this branch
+        run: pip install .
+      - name: Run deepeval test run
+        env:
+          CONFIDENT_BASE_URL: https://swiftly-portable-sediment.ngrok-free.dev
+        run: deepeval test run .github/deepeval-example/test_pr_comment.py
