@@ -72,9 +72,10 @@ The `deepeval` integration auto-instruments to trace every call to your Pydantic
 ## Version Compatibility
 
 :::warning[Compatibility evidence]
-These exact pairs are tested against the current source tree, versioned `4.2.1`,
-including the unreleased compatibility fix. They are also pinned in the
-[Pydantic AI compatibility CI job](https://github.com/confident-ai/deepeval/blob/main/.github/workflows/test_integrations.yml).
+These exact pairs were tested locally against the source tree, versioned `4.2.1`,
+including the unreleased compatibility fix. The regression tests run as part of the
+[existing Pydantic AI CI job](https://github.com/confident-ai/deepeval/blob/main/.github/workflows/test_integrations.yml),
+which installs the latest Pydantic AI release rather than pinning these pairs.
 The published `4.2.1` package does not include the fix for Pydantic AI 2's tool-span attributes.
 :::
 
