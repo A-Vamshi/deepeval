@@ -1,7 +1,7 @@
 > Compatibility: examples use Pydantic AI >=1.95's `Instrumentation` capability.
 > Pydantic AI 2 removed the `Agent(instrument=...)` constructor keyword. On older
 > 1.x versions, pass `DeepEvalInstrumentationSettings()` to `instrument=` instead.
-> DeepEval 4.2.1 supports the settings object; the unreleased compatibility fix
+> DeepEval 4.2.1 supports the settings object; the compatibility fix in 4.2.2
 > adds tool argument/result extraction for Pydantic AI 2's default telemetry.
 > See the [version table](../../../docs/content/integrations/frameworks/pydanticai.mdx).
 

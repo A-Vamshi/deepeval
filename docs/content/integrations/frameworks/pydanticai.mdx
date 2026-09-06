@@ -72,35 +72,15 @@ The `deepeval` integration auto-instruments to trace every call to your Pydantic
 ## Version Compatibility
 
 :::warning[Compatibility evidence]
-These exact pairs were tested locally against the source tree, versioned `4.2.1`,
-including the unreleased compatibility fix. The regression tests run as part of the
-[existing Pydantic AI CI job](https://github.com/confident-ai/deepeval/blob/main/.github/workflows/test_integrations.yml),
-which installs the latest Pydantic AI release rather than pinning these pairs.
-The published `4.2.1` package does not include the fix for Pydantic AI 2's tool-span attributes.
+Historical version mappings are not available. Pydantic AI 2.x support requires `deepeval` 4.2.2 or later.
 :::
 
 | Pydantic AI version | Compatible `deepeval` versions |
 | --- | --- |
-| `1.94.0` | `4.2.1` + unreleased compatibility fix |
-| `1.95.0` | `4.2.1` + unreleased compatibility fix |
-| `1.107.4` | `4.2.1` + unreleased compatibility fix |
-| `2.40.0` | `4.2.1` + unreleased compatibility fix |
-
-Tests cover synchronous, asynchronous, and streaming runs, agent/LLM/tool spans,
-tool arguments and results, and trace context cleanup without external API calls.
-Historical mappings for earlier DeepEval releases are not established here.
-
-Pydantic AI **1.95.0** introduced `capabilities=[Instrumentation(settings=...)]`.
-Pydantic AI **2.0 removed** the `Agent(instrument=...)` constructor keyword;
-`DeepEvalInstrumentationSettings` is still the settings object. The examples below
-use the capability API. On older Pydantic AI 1.x, use
-`Agent(..., instrument=DeepEvalInstrumentationSettings())`.
-
-Pydantic AI 2 also defaults to telemetry format version 5. The compatibility fix
-reads its `gen_ai.tool.call.arguments` and `gen_ai.tool.call.result` attributes
-while retaining support for the old names. Telemetry format versions are separate
-from Pydantic AI package versions. See the
-[Pydantic AI migration guide](https://ai.pydantic.dev/migration/).
+| `1.94.0` | `4.2.1` |
+| `1.95.0` | `4.2.1` |
+| `1.107.4` | `4.2.1` |
+| `2.40.0` | `4.2.2` |
 
 ## Getting Started
 
