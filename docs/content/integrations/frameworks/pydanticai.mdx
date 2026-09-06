@@ -69,6 +69,38 @@ The `deepeval` integration auto-instruments to trace every call to your Pydantic
 - **Run evals from a script** (`evals_iterator`) **or from CI/CD** (`pytest` + `deepeval test run`) — same metrics, two surfaces.
 - **Customize trace and span data at runtime** from anywhere in the call stack — your tool bodies, post-processors, or the call site.
 
+## Version Compatibility
+
+:::warning[Compatibility evidence]
+These exact pairs are tested against the current source tree, versioned `4.2.1`,
+including the unreleased compatibility fix. They are also pinned in the
+[Pydantic AI compatibility CI job](https://github.com/confident-ai/deepeval/blob/main/.github/workflows/test_integrations.yml).
+The published `4.2.1` package does not include the fix for Pydantic AI 2's tool-span attributes.
+:::
+
+| Pydantic AI version | Compatible `deepeval` versions |
+| --- | --- |
+| `1.94.0` | `4.2.1` + unreleased compatibility fix |
+| `1.95.0` | `4.2.1` + unreleased compatibility fix |
+| `1.107.4` | `4.2.1` + unreleased compatibility fix |
+| `2.40.0` | `4.2.1` + unreleased compatibility fix |
+
+Tests cover synchronous, asynchronous, and streaming runs, agent/LLM/tool spans,
+tool arguments and results, and trace context cleanup without external API calls.
+Historical mappings for earlier DeepEval releases are not established here.
+
+Pydantic AI **1.95.0** introduced `capabilities=[Instrumentation(settings=...)]`.
+Pydantic AI **2.0 removed** the `Agent(instrument=...)` constructor keyword;
+`DeepEvalInstrumentationSettings` is still the settings object. The examples below
+use the capability API. On older Pydantic AI 1.x, use
+`Agent(..., instrument=DeepEvalInstrumentationSettings())`.
+
+Pydantic AI 2 also defaults to telemetry format version 5. The compatibility fix
+reads its `gen_ai.tool.call.arguments` and `gen_ai.tool.call.result` attributes
+while retaining support for the old names. Telemetry format versions are separate
+from Pydantic AI package versions. See the
+[Pydantic AI migration guide](https://ai.pydantic.dev/migration/).
+
 ## Getting Started
 
 <Steps>
@@ -78,7 +110,7 @@ The `deepeval` integration auto-instruments to trace every call to your Pydantic
 ### Installation
 
 ```bash
-pip install -U deepeval pydantic-ai opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
+pip install -U deepeval "pydantic-ai-slim[openai]>=1.95,<3" opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
 ```
 
 Under the hood the integration plugs Pydantic AI's [OpenTelemetry instrumentation](https://ai.pydantic.dev/logfire/) into `deepeval`'s span processor.
@@ -93,10 +125,11 @@ You don't need to touch OTel directly — but it's worth knowing if you're alrea
 
 ### Instrument and evaluate
 
-Pass `DeepEvalInstrumentationSettings` to the `Agent`'s `instrument` keyword. From that point on, any `agent.run(...)`, `agent.run_sync(...)`, or `agent.run_stream(...)` call produces a trace `deepeval` can read.
+Pass `DeepEvalInstrumentationSettings` to Pydantic AI's `Instrumentation` capability in the `Agent`'s `capabilities` list. From that point on, any `agent.run(...)`, `agent.run_sync(...)`, or `agent.run_stream(...)` call produces a trace `deepeval` can read.
 
 ```python title="pydantic_ai_agent.py" showLineNumbers
 from pydantic_ai import Agent
+from pydantic_ai.capabilities import Instrumentation
 from deepeval.integrations.pydantic_ai import DeepEvalInstrumentationSettings
 from deepeval.dataset import EvaluationDataset, Golden
 from deepeval.metrics import TaskCompletionMetric
@@ -104,7 +137,7 @@ from deepeval.metrics import TaskCompletionMetric
 agent = Agent(
     "openai:gpt-5",
     system_prompt="Be concise, reply with one sentence.",
-    instrument=DeepEvalInstrumentationSettings(),
+    capabilities=[Instrumentation(settings=DeepEvalInstrumentationSettings())],
 )
 
 # Goldens are the inputs you want to evaluate.
@@ -155,6 +188,7 @@ Define an `EvaluationDataset` at module scope, parametrize the test over its gol
 import pytest
 
 from pydantic_ai import Agent
+from pydantic_ai.capabilities import Instrumentation
 from deepeval import assert_test
 from deepeval.dataset import EvaluationDataset, Golden
 from deepeval.integrations.pydantic_ai import DeepEvalInstrumentationSettings
@@ -163,7 +197,9 @@ from deepeval.metrics import AnswerRelevancyMetric
 agent = Agent(
     "openai:gpt-5",
     system_prompt="Be concise, reply with one sentence.",
-    instrument=DeepEvalInstrumentationSettings(name="my-agent"),
+    capabilities=[
+        Instrumentation(settings=DeepEvalInstrumentationSettings(name="my-agent"))
+    ],
 )
 
 dataset = EvaluationDataset(
@@ -196,6 +232,7 @@ Use `EvaluationDataset` + `evals_iterator(...)`. Each `Golden` becomes one agent
 import asyncio
 
 from pydantic_ai import Agent
+from pydantic_ai.capabilities import Instrumentation
 from deepeval.dataset import EvaluationDataset, Golden
 from deepeval.evaluate.configs import AsyncConfig
 from deepeval.integrations.pydantic_ai import DeepEvalInstrumentationSettings
@@ -204,7 +241,9 @@ from deepeval.metrics import AnswerRelevancyMetric
 agent = Agent(
     "openai:gpt-5",
     system_prompt="Be concise, reply with one sentence.",
-    instrument=DeepEvalInstrumentationSettings(name="my-agent"),
+    capabilities=[
+        Instrumentation(settings=DeepEvalInstrumentationSettings(name="my-agent"))
+    ],
 )
 
 
@@ -232,11 +271,15 @@ Trajectory evaluation scores the complete ordered trace: every agent decision, L
 
 ```python title="pydantic_ai_agent.py" showLineNumbers
 from pydantic_ai import Agent
+from pydantic_ai.capabilities import Instrumentation
 from deepeval.integrations.pydantic_ai import DeepEvalInstrumentationSettings
 from deepeval.dataset import EvaluationDataset, Golden
 from deepeval.metrics import TaskCompletionMetric, StepEfficiencyMetric, PlanAdherenceMetric
 
-agent = Agent("openai:gpt-5", instrument=DeepEvalInstrumentationSettings())
+agent = Agent(
+    "openai:gpt-5",
+    capabilities=[Instrumentation(settings=DeepEvalInstrumentationSettings())],
+)
 dataset = EvaluationDataset(goldens=[Golden(input="What's the weather in Paris?")])
 trajectory_metrics = [
     TaskCompletionMetric(),
@@ -476,7 +519,7 @@ For runtime helpers (`update_current_trace`, `update_current_span`, `next_agent_
       answer: (
         <>
           Yes. Build the <code>Agent</code> with{" "}
-          <code>instrument=DeepEvalInstrumentationSettings()</code>, run it in a
+          <code>capabilities=[Instrumentation(settings=DeepEvalInstrumentationSettings())]</code>, run it in a
           parametrized <code>pytest</code> test, and gate the build with{" "}
           <code>assert_test(...)</code> and <code>deepeval test run</code>.
         </>

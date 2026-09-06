@@ -1,3 +1,10 @@
+> Compatibility: examples use Pydantic AI >=1.95's `Instrumentation` capability.
+> Pydantic AI 2 removed the `Agent(instrument=...)` constructor keyword. On older
+> 1.x versions, pass `DeepEvalInstrumentationSettings()` to `instrument=` instead.
+> DeepEval 4.2.1 supports the settings object; the unreleased compatibility fix
+> adds tool argument/result extraction for Pydantic AI 2's default telemetry.
+> See the [version table](../../../docs/content/integrations/frameworks/pydanticai.mdx).
+
 # DeepEval × Pydantic AI integration
 
 End-to-end reference for running [Pydantic AI](https://ai.pydantic.dev/)
@@ -38,8 +45,8 @@ For a 5-minute getting-started guide, see the
 
 ```
                        ┌─────────────────────────────────────────┐
-   user code           │  Agent(instrument=DeepEvalInstrumentationSettings- │
-                       │     tionSettings(...))                  │
+   user code           │  Agent(capabilities=[                   │
+                       │    Instrumentation(settings=...)])      │
                        │  agent.run_sync("...")                  │
                        └──────────────────┬──────────────────────┘
                                           │ pydantic-ai opens OTel spans
@@ -71,7 +78,7 @@ For a 5-minute getting-started guide, see the
 
 `DeepEvalInstrumentationSettings` does the wiring (`TracerProvider`
 creation, processor registration, global-tracer-provider set,
-forwarding to pydantic-ai's `Agent(instrument=...)`). It also carries
+supplying Pydantic AI's `Instrumentation(settings=...)` capability). It also carries
 trace-level defaults.
 
 `SpanInterceptor` is a custom OTel `SpanProcessor`. It runs
@@ -138,7 +145,13 @@ distinguished by what (if anything) wraps the call.
 ### Mode 1: Bare `agent.run` / `agent.run_sync`
 
 ```python
-agent = Agent("openai:gpt-4o-mini", instrument=DeepEvalInstrumentationSettings())
+from pydantic_ai import Agent
+from pydantic_ai.capabilities import Instrumentation
+
+agent = Agent(
+    "openai:gpt-4o-mini",
+    capabilities=[Instrumentation(settings=DeepEvalInstrumentationSettings())],
+)
 result = agent.run_sync("hello")
 ```
 
