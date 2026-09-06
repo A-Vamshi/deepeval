@@ -275,7 +275,7 @@ settings = DeepEvalInstrumentationSettings(
     test_case_id="tc-001",
     turn_id="turn-9",
 )
-agent = Agent(..., instrument=settings)
+agent = Agent(..., capabilities=[Instrumentation(settings=settings)])
 ```
 
 Every trace produced by this agent ships with these values, unless
@@ -735,7 +735,7 @@ settings = DeepEvalInstrumentationSettings(
     metric_collection="prod-metrics",
     metadata={"env": "prod"},
 )
-agent = Agent("openai:gpt-4o-mini", instrument=settings, name="my_bot")
+agent = Agent("openai:gpt-4o-mini", capabilities=[Instrumentation(settings=settings)], name="my_bot")
 
 agent.run_sync("hello")
 ```
@@ -754,8 +754,8 @@ Each call attributes to a different user/thread. Routing: REST.
 ### Pattern 3: Orchestrator → sub-agents
 
 ```python
-orchestrator = Agent("openai:gpt-4o-mini", instrument=settings_a, name="orchestrator")
-sub_agent = Agent("openai:gpt-4o-mini", instrument=settings_b, name="sub_agent")
+orchestrator = Agent("openai:gpt-4o-mini", capabilities=[Instrumentation(settings=settings_a)], name="orchestrator")
+sub_agent = Agent("openai:gpt-4o-mini", capabilities=[Instrumentation(settings=settings_b)], name="sub_agent")
 
 @orchestrator.tool_plain
 def delegate(query: str) -> str:
