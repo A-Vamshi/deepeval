@@ -15,7 +15,7 @@ jobs:
     env:
       CONFIDENT_API_KEY: ${{ secrets.CONFIDENT_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      CONFIDENT_BASE_URL: "http://localhost:3001"
+      CONFIDENT_BASE_URL: "https://swiftly-portable-sediment.ngrok-free.dev"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
