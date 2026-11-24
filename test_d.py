@@ -15,7 +15,7 @@ def test_refund_answer():
     test_case = LLMTestCase(
         input="What if these shoes don't fit?",
         # Replace this with the actual output of your LLM application
-        actual_output="We offer a 30-day full refund at no extra cost.",
+        actual_output="Sorry, all sales are final. We don't accept returns or give refunds, but you can exchange them for store credit within 7 days.",
         expected_output="You're eligible for a free full refund within 30 days of purchase.",
     )
     correctness_metric = GEval(
