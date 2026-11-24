@@ -1,0 +1,30 @@
+name: DeepEval
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  deepeval:
+    name: deepeval test run
+    runs-on: ubuntu-latest
+    env:
+      CONFIDENT_API_KEY: ${{ secrets.CONFIDENT_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      CONFIDENT_BASE_URL: "http://localhost:3001"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pipx install poetry
+          poetry install
+      - name: Run deepeval tests
+        run: |
+          poetry run deepeval test run test_d.py
